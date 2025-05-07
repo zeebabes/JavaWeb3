@@ -1,36 +1,32 @@
 pipeline {
     agent any
-
+ 
     environment {
+        DOCKER_HUB_CREDENTIALS = 'Docker-Hub-Credentials'
         IMAGE_NAME = 'kemiagbabiaka/java-web-calculator'
     }
-
+ 
     stages {
-        stage('Clone') {
+        stage('Checkout') {
             steps {
-                git 'https://github.com/zeebabes/JavaWeb3.git'
+                git branch: 'latest', url: 'https://github.com/zeebabes/JavaWeb3.git'
             }
         }
-
-        stage('Build') {
-            steps {
-                bat 'mvn clean package'
-            }
-        }
-
+ 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                script {
+                    docker.build("${IMAGE_NAME}:latest")
+                }
             }
         }
-
+ 
         stage('Push to Docker Hub') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    sh '''
-                        echo "$PASSWORD" | docker login -u "$USERNAME" --password-stdin
-                        docker push $IMAGE_NAME
-                    '''
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', "${DOCKER_HUB_CREDENTIALS}") {
+                        docker.image("${IMAGE_NAME}:latest").push()
+                    }
                 }
             }
         }
